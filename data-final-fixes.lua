@@ -28,7 +28,7 @@ function This_MOD.start()
     --- Modificar los elementos
     for _, spaces in pairs(This_MOD.to_be_processed) do
         for _, space in pairs(spaces) do
-            --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+            --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 
             --- Crear los elementos
             This_MOD.create_item(space)
@@ -36,7 +36,7 @@ function This_MOD.start()
             This_MOD.create_recipe(space)
             This_MOD.create_tech(space)
 
-            --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+            --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
         end
     end
 
@@ -44,9 +44,6 @@ function This_MOD.start()
     This_MOD.load_styles()
     This_MOD.load_icon()
     This_MOD.load_sound()
-
-    --- Fijar las posiciones actual
-    GMOD.d00b.change_orders()
 
     --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 end
@@ -111,7 +108,7 @@ function This_MOD.get_elements()
     --- Validación
     --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 
-    if GMOD.items[This_MOD.new_entity_name] then return end
+    if GMOD.item[This_MOD.new_entity_name] then return end
 
     --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 
@@ -135,7 +132,7 @@ function This_MOD.get_elements()
     local Orders = {}
     local Order_chest = {}
     for _, name in pairs(Chest) do
-        local Item = GMOD.items[name]
+        local Item = GMOD.item[name]
         Order_chest[Item.order] = name
         table.insert(Orders, Item.order)
     end
@@ -144,18 +141,23 @@ function This_MOD.get_elements()
     table.sort(Orders)
 
     --- Información de referencia
-    local Space = {}
-    Space.name = Order_chest[Orders[#Orders]]
-    Space.item = GMOD.items[Space.name]
-    Space.entity = GMOD.entities[Space.name]
+    local Ref = Order_chest[Orders[#Orders]]
 
-    Space.recipe = GMOD.recipes[Space.name]
+    local Space = {}
+    Space.name = This_MOD.old_entity_name
+    Space.item = GMOD.item[Ref]
+    Space.entity = GMOD.entity[Ref]
+
+    Space.recipe = GMOD.recipes[Ref]
     Space.tech = GMOD.get_technology(Space.recipe)
     Space.recipe = Space.recipe and Space.recipe[1] or nil
 
-    Space.name = This_MOD.old_entity_name
-    Space.chest_entity = data.raw["linked-container"][Space.name]
-    Space.chest_item = data.raw.item[Space.name]
+    Space.chest_entity = data.raw["linked-container"][This_MOD.old_entity_name]
+    Space.chest_item = data.raw.item[This_MOD.old_entity_name]
+
+    for key, value in pairs(Space) do
+        Space[key] = GMOD.copy_with_format(value)
+    end
 
     --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 
@@ -215,8 +217,7 @@ function This_MOD.create_item(space)
     Item.localised_description = { "", { "entity-description." .. This_MOD.old_entity_name } }
 
     --- Actualizar el order
-    local Order = tonumber(Item.order) + 1
-    Item.order = GMOD.pad_left_zeros(#Item.order, Order)
+    Item.order = Item.order .. "-06"
 
     --- Entidad a crear
     Item.place_result = This_MOD.new_entity_name
@@ -352,10 +353,6 @@ function This_MOD.create_recipe(space)
 
     --- Agregar indicador del MOD
     Recipe.icons = GMOD.copy(space.chest_item.icons)
-
-    --- Actualizar el order
-    local Order = tonumber(Recipe.order) + 1
-    Recipe.order = GMOD.pad_left_zeros(#Recipe.order, Order)
 
     --- Resultados
     Recipe.results = { {
